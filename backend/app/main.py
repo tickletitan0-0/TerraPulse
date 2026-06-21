@@ -3,6 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from app.routers.fires import router as fire_router
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.ingestion.firms_worker import FIRMSWorker
+
+def run_worker():
+    worker = FIRMSWorker()
+    worker.run()
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(run_worker, "interval", minutes=60)
+scheduler.start()
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Terrapulse")

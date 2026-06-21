@@ -86,7 +86,8 @@ def get_top_fires(
             "latitude": fire.latitude,
             "longitude": fire.longitude,
             "satellite": fire.satellite,
-            "date": fire.acquisition_date
+            "date": fire.acquisition_date,
+            "acquisition_time": fire.acquisition_time
         }
         for fire in fires
     ]
