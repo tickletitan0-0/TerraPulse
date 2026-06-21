@@ -3,6 +3,7 @@ import api from "../services/api";
 import FireMap, { LocationSearch, distanceKm, SEARCH_RADIUS_KM } from "../components/FireMap";
 import TopFires from "../components/TopFires";
 import FireDetailPanel from "../components/FireDetailPanel";
+import ParticleCanvas from "../components/ParticleCanvas";
 
 const CACHE_KEY = "terrapulse_cache";
 const CACHE_TTL = 65 * 60 * 1000;
@@ -32,67 +33,6 @@ const loadCache = () => {
     return null;
   }
 };
-
-function EmberCanvas() {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-
-    const embers = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      radius: Math.random() * 2.5 + 0.5,
-      opacity: Math.random(),
-      speedX: (Math.random() - 0.5) * 0.4,
-      speedY: -(Math.random() * 0.8 + 0.3),
-      color: Math.random() > 0.5 ? "#00cfff" : "#ffffff",
-    }));
-
-    let animId;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      embers.forEach((e) => {
-        e.x += e.speedX;
-        e.y += e.speedY;
-        e.opacity -= 0.003;
-        if (e.opacity <= 0 || e.y < 0) {
-          e.x = Math.random() * canvas.width;
-          e.y = canvas.height;
-          e.opacity = Math.random() * 0.8 + 0.2;
-          e.speedX = (Math.random() - 0.5) * 0.4;
-          e.speedY = -(Math.random() * 0.8 + 0.3);
-        }
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-        ctx.fillStyle = e.color;
-        ctx.globalAlpha = e.opacity;
-        ctx.fill();
-      });
-      ctx.globalAlpha = 1;
-      animId = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(animId);
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "absolute",
-        top: 0, left: 0,
-        width: "100%", height: "100%",
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
 
 function Dashboard() {
   const [stats, setStats]             = useState(null);
@@ -210,7 +150,7 @@ function Dashboard() {
       <div>
         <div className="dashboard">
           <div className="hero animate delay-1" style={{ position: "relative", overflow: "hidden" }}>
-            <EmberCanvas />
+            <ParticleCanvas />
             <h1>Geoscint</h1>
             <p>Planetary Intelligence Platform</p>
           </div>

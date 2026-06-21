@@ -175,7 +175,7 @@ function HeatLayer({ fires }) {
   return null;
 }
 
-function SearchLocationLayer({ location, radiusKm }) {
+export function SearchLocationLayer({ location, radiusKm }) {
   const map = useMap();
 
   useEffect(() => {
@@ -222,7 +222,7 @@ function SearchLocationLayer({ location, radiusKm }) {
   return null;
 }
 
-export function LocationSearch({ onSelect, onClear, activeLocation }) {
+export function LocationSearch({ onSelect, onClear, activeLocation, placeholder = "Search a place…" }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -288,7 +288,7 @@ export function LocationSearch({ onSelect, onClear, activeLocation }) {
         <input
           type="text"
           className="location-search-input"
-          placeholder="Search a place to see nearby fires…"
+          placeholder={placeholder}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

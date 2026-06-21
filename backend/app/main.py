@@ -5,13 +5,16 @@ from app.database import Base, engine
 # Import all models before create_all so SQLAlchemy registers them
 from app.models.fire import Fire
 from app.models.earthquake import Earthquake
+from app.models.air_quality import AirQuality
 
 from app.routers.fires import router as fire_router
 from app.routers.earthquakes import router as earthquake_router
+from app.routers.air_quality import router as air_quality_router
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.ingestion.firms_worker import FIRMSWorker
 from app.ingestion.usgs_worker import USGSWorker
+from app.ingestion.waqi_worker import WAQIWorker
 
 Base.metadata.create_all(bind=engine)
 
@@ -21,9 +24,13 @@ def run_fire_worker():
 def run_usgs_worker():
     USGSWorker().run()
 
+def run_waqi_worker():
+    WAQIWorker().run()
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(run_fire_worker, "interval", minutes=60)
 scheduler.add_job(run_usgs_worker, "interval", minutes=5)
+scheduler.add_job(run_waqi_worker, "interval", minutes=15)
 scheduler.start()
 
 app = FastAPI(title="Terrapulse")
@@ -42,6 +49,7 @@ app.add_middleware(
 
 app.include_router(fire_router)
 app.include_router(earthquake_router)
+app.include_router(air_quality_router)
 
 @app.get("/")
 def root():
