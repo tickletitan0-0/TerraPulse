@@ -18,22 +18,44 @@ from app.ingestion.waqi_worker import WAQIWorker
 
 Base.metadata.create_all(bind=engine)
 
+
 def run_fire_worker():
-    FIRMSWorker().run()
+    try:
+        FIRMSWorker().run()
+    except Exception as e:
+        print(f"[FIRE WORKER ERROR] {e}")
+
 
 def run_usgs_worker():
-    USGSWorker().run()
+    try:
+        USGSWorker().run()
+    except Exception as e:
+        print(f"[USGS WORKER ERROR] {e}")
+
 
 def run_waqi_worker():
-    WAQIWorker().run()
+    try:
+        WAQIWorker().run()
+    except Exception as e:
+        print(f"[WAQI WORKER ERROR] {e}")
+
+
+# Run each worker once immediately on startup so data is fresh from the
+# first request — without this, the dashboard shows stale cache for the
+# first full interval after every server restart.
+print("[STARTUP] Running initial data ingestion...")
+run_fire_worker()
+run_usgs_worker()
+run_waqi_worker()
+print("[STARTUP] Initial ingestion complete.")
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(run_fire_worker, "interval", minutes=60)
-scheduler.add_job(run_usgs_worker, "interval", minutes=5)
-scheduler.add_job(run_waqi_worker, "interval", minutes=15)
+scheduler.add_job(run_fire_worker,  "interval", minutes=60)
+scheduler.add_job(run_usgs_worker,  "interval", minutes=5)
+scheduler.add_job(run_waqi_worker,  "interval", minutes=15)
 scheduler.start()
 
-app = FastAPI(title="Terrapulse")
+app = FastAPI(title="Geoscint")
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,6 +72,7 @@ app.add_middleware(
 app.include_router(fire_router)
 app.include_router(earthquake_router)
 app.include_router(air_quality_router)
+
 
 @app.get("/")
 def root():

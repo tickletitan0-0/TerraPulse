@@ -8,6 +8,7 @@ import EarthquakeDetailPanel from "../components/EarthquakeDetailPanel";
 
 const EQ_CACHE_KEY = "terrapulse_eq_cache";
 const EQ_CACHE_TTL = 5 * 60 * 1000; // 5 minutes since USGS updates frequently
+const EQ_CHECK_INTERVAL = 60 * 1000; // re-check every minute while tab is open
 
 const saveCache = (stats, quakes, timestamp) => {
   try {
@@ -39,7 +40,21 @@ function EarthquakeDashboard() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [selectedQuake, setSelectedQuake] = useState(null);
   const [searchedLocation, setSearchedLocation] = useState(null);
-  const mapRef                        = useRef(null);
+  const mapRef         = useRef(null);
+  const lastUpdatedRef = useRef(null); // mirrors lastUpdated for use inside intervals/listeners
+
+  const fetchFreshData = () =>
+    Promise.all([
+      api.get("/earthquakes/stats"),
+      api.get("/earthquakes/map"),
+    ]).then(([statsRes, mapRes]) => {
+      const timestamp = Date.now();
+      setStats(statsRes.data);
+      setQuakes(mapRes.data);
+      setLastUpdated(new Date(timestamp));
+      lastUpdatedRef.current = timestamp;
+      saveCache(statsRes.data, mapRes.data, timestamp);
+    });
 
   useEffect(() => {
     const cache = loadCache();
@@ -49,25 +64,44 @@ function EarthquakeDashboard() {
       setStats(cache.stats);
       setQuakes(cache.quakes);
       setLastUpdated(new Date(cache.timestamp));
+      lastUpdatedRef.current = cache.timestamp;
       setProgress(100);
       setTimeout(() => setMapReady(true), 300);
       return;
     }
 
-    Promise.all([
-      api.get("/earthquakes/stats"),
-      api.get("/earthquakes/map"),
-    ])
-      .then(([statsRes, mapRes]) => {
-        const timestamp = Date.now();
-        setStats(statsRes.data);
-        setQuakes(mapRes.data);
-        setLastUpdated(new Date(timestamp));
-        saveCache(statsRes.data, mapRes.data, timestamp);
+    setProgress(30);
+    fetchFreshData()
+      .then(() => {
         setProgress(100);
         setTimeout(() => setMapReady(true), 300);
       })
       .catch(() => setError(true));
+  }, []);
+
+  useEffect(() => {
+    const refreshIfStale = () => {
+      const last = lastUpdatedRef.current;
+      if (!last || Date.now() - last >= EQ_CACHE_TTL) {
+        fetchFreshData().catch(() => {
+          // Swallow background refresh errors — keep showing last-known-good data
+        });
+      }
+    };
+
+    const interval = setInterval(refreshIfStale, EQ_CHECK_INTERVAL);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refreshIfStale();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", refreshIfStale);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", refreshIfStale);
+    };
   }, []);
 
   if (error) {
@@ -106,7 +140,7 @@ function EarthquakeDashboard() {
         <div className="dashboard">
 
           <div className="hero animate delay-1" style={{ position: "relative", overflow: "hidden" }}>
-            <ParticleCanvas />
+            <ParticleCanvas colors={["#a78bfa", "#c4b5fd", "#ffffff"]} />
             <h1>Geoscint</h1>
             <p>Planetary Intelligence Platform</p>
           </div>

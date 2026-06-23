@@ -54,7 +54,7 @@ function Sidebar({ activePage, onNavigate }) {
             return (
               <li key={item.key}>
                 <button
-                  className={`sidebar-link${isActive ? ` active ${item.key}` : ""}`}
+                  className={`sidebar-link ${item.key}${isActive ? " active" : ""}`}
                   disabled={!isEnabled}
                   aria-current={isActive ? "page" : undefined}
                   onClick={() => isEnabled && onNavigate(item.key)}
